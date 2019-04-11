@@ -67,6 +67,9 @@ def turnAngleVector(angles):
     print("Potential Bases = ", potentialBase)
     bestPotentialBase = chooseBestBase(potentialBase)
     print("Best potential base = ", bestPotentialBase)
+    angleBasePosition = [i for i in range(len(angles)) if angles[i] in bestPotentialBase]
+    print(angleBasePosition)
+
 
 def main():
     pathToImages = sys.argv[1]
