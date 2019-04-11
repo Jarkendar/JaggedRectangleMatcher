@@ -58,7 +58,8 @@ def canBeBase(angle1, angle2):
 def chooseBestBase(potentialBases):
     if len(potentialBases) == 1:
         return potentialBases[0]
-    error = [((pBase[0] - STRAIGHT_ANGLE) ** 2 + (pBase[1] - STRAIGHT_ANGLE) ** 2) / 2 for pBase in potentialBases]
+    error = [((pBase[0][1] - STRAIGHT_ANGLE) ** 2 + (pBase[1][1] - STRAIGHT_ANGLE) ** 2) / 2 for pBase in
+             potentialBases]
     return [potentialBases[i] for i, e in enumerate(error) if e == min(error)][0]
 
 
