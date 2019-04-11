@@ -10,6 +10,16 @@ STRAIGHT_ANGLE = 90.0
 STRAIGHT_ANGLE_TOLERANCE = 5.0
 
 
+class Point:
+    def __init__(self, point):
+        self.coordinates = point
+        self.leftNeighbor = None
+        self.rightNeighbot = None
+        self.angle = None
+        self.leftDistance = 0.0
+        self.rightDistance = 0.0
+
+
 def readImages(path, numberOfImages):
     return [io.imread(path + '/' + str(i) + IMAGE_SUFFIX) for i in range(numberOfImages)]
 
