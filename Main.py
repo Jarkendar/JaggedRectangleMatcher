@@ -61,14 +61,24 @@ def chooseBestBase(potentialBases):
     return [potentialBases[i] for i, e in enumerate(error) if e == min(error)][0]
 
 
-def turnAngleVector(angles):
+def turnAngleVector(angles, basePosition):
+    if basePosition[0] == 0 and basePosition[1] == 1:
+        return angles
+    start = basePosition[0] if basePosition[1] - basePosition[0] == 1 else basePosition[1]
+    return [angles[(i + start) % len(angles)] for i in range(len(angles))]
+
+
+def prepareAngleVector(angles):
     potentialBase = [[angles[i], angles[i + 1]] for i in range(-1, len(angles) - 1) if
                      canBeBase(angles[i], angles[i + 1])]
     print("Potential Bases = ", potentialBase)
     bestPotentialBase = chooseBestBase(potentialBase)
     print("Best potential base = ", bestPotentialBase)
     angleBasePosition = [i for i in range(len(angles)) if angles[i] in bestPotentialBase]
-    print(angleBasePosition)
+    print("Base position = ", angleBasePosition)
+    turnedVector = turnAngleVector(angles, angleBasePosition)
+    print("Turned vector = ", turnedVector)
+    return turnedVector
 
 
 def main():
@@ -80,8 +90,8 @@ def main():
         polygon = findPolygon(i)
         angles = countAngles(polygon)
         print("Angles = ", angles)
-
-        turnAngleVector(angles)
+        startBaseAngles = prepareAngleVector(angles)
+        print("Start base angles = ", startBaseAngles)
         print()
 
 
