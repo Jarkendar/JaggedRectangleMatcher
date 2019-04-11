@@ -92,6 +92,10 @@ def countDistances(points):
             for i in range(len(points))]
 
 
+def countMinimalSectionRatio(section1, section2):
+    return section1 / section2 if section1 < section2 else section2 / section1
+
+
 def main():
     pathToImages = sys.argv[1]
     imageNumber = int(sys.argv[2])
