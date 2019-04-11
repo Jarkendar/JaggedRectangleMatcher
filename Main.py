@@ -10,16 +10,6 @@ STRAIGHT_ANGLE = 90.0
 STRAIGHT_ANGLE_TOLERANCE = 5.0
 
 
-class Point:
-    def __init__(self, point):
-        self.coordinates = point
-        self.leftNeighbor = None
-        self.rightNeighbot = None
-        self.angle = None
-        self.leftDistance = 0.0
-        self.rightDistance = 0.0
-
-
 def readImages(path, numberOfImages):
     return [io.imread(path + '/' + str(i) + IMAGE_SUFFIX) for i in range(numberOfImages)]
 
@@ -41,7 +31,7 @@ def findPolygon(image):
     for contour in measure.find_contours(image, 0):
         if bestContour is None or len(bestContour) < len(contour):
             bestContour = contour
-    return measure.approximate_polygon(bestContour, POLYGON_TOLERANCE)
+    return measure.approximate_polygon(bestContour, POLYGON_TOLERANCE)[:-1]  # without last point (same as first)
 
 
 def countAngle(pLeft, pCenter, pRight):
@@ -52,8 +42,9 @@ def countAngle(pLeft, pCenter, pRight):
 
 
 def countAngles(points):
-    return [countAngle(points[i - 1], points[i], points[i + 1] if i < len(points) - 1 else points[1])
-            for i in range(1, len(points))]
+    return [[list(points[i]), countAngle(points[i - 1], points[i], points[i + 1] if i < len(points) - 1 else points[0])]
+            # [[posX, posY],angle]
+            for i in range(0, len(points))]
 
 
 def isAngleStraight(angle):
@@ -78,15 +69,15 @@ def turnAngleVector(angles, basePosition):
     return [angles[(i + start) % len(angles)] for i in range(len(angles))]
 
 
-def prepareAngleVector(angles):
-    potentialBase = [[angles[i], angles[i + 1]] for i in range(-1, len(angles) - 1) if
-                     canBeBase(angles[i], angles[i + 1])]
+def prepareVector(points):
+    potentialBase = [[points[i], points[i + 1]] for i in range(-1, len(points) - 1) if
+                     canBeBase(points[i][1], points[i + 1][1])]
     print("Potential Bases = ", potentialBase)
     bestPotentialBase = chooseBestBase(potentialBase)
     print("Best potential base = ", bestPotentialBase)
-    angleBasePosition = [i for i in range(len(angles)) if angles[i] in bestPotentialBase]
+    angleBasePosition = [i for i in range(len(points)) if points[i] in bestPotentialBase]
     print("Base position = ", angleBasePosition)
-    turnedVector = turnAngleVector(angles, angleBasePosition)
+    turnedVector = turnAngleVector(points, angleBasePosition)
     print("Turned vector = ", turnedVector)
     return turnedVector
 
@@ -98,10 +89,10 @@ def main():
 
     for i in images:
         polygon = findPolygon(i)
-        angles = countAngles(polygon)
-        print("Angles = ", angles)
-        startBaseAngles = prepareAngleVector(angles)
-        print("Start base angles = ", startBaseAngles)
+        withAngles = countAngles(polygon)
+        print("Angles = ", withAngles)
+        startBasePoints = prepareVector(withAngles)
+        print("Start base angles = ", startBasePoints)
         print()
 
 
