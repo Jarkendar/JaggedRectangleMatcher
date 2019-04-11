@@ -96,15 +96,19 @@ def main():
     pathToImages = sys.argv[1]
     imageNumber = int(sys.argv[2])
     images = readImages(pathToImages, imageNumber)
+    imagesData = []
 
-    for i in images:
-        polygon = findPolygon(i)
+    for i, image in enumerate(images):
+        polygon = findPolygon(image)
         withAngles = countAngles(polygon)
         print("Angles = ", withAngles)
         startBasePoints = prepareVector(withAngles)
         print("Start base angles = ", startBasePoints)
         withDistances = countDistances(startBasePoints)
         print("With distances = ", withDistances)
+        imagesData.append([i, withDistances])
+        # item = [imageIndex, [ [ [pointX, pointY], angle, [distanceLeft, distanceRight] ]... ]
+    print(imagesData)
 
 
 if __name__ == '__main__':
