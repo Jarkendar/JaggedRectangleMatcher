@@ -82,6 +82,16 @@ def prepareVector(points):
     return turnedVector
 
 
+def calcDist(point1, point2):
+    return sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
+
+
+def countDistances(points):
+    return [[points[i][0], points[i][1],
+             [calcDist(points[i][0], points[i - 1][0]), calcDist(points[i][0], points[(i + 1) % len(points)][0])]]
+            for i in range(len(points))]
+
+
 def main():
     pathToImages = sys.argv[1]
     imageNumber = int(sys.argv[2])
@@ -93,7 +103,8 @@ def main():
         print("Angles = ", withAngles)
         startBasePoints = prepareVector(withAngles)
         print("Start base angles = ", startBasePoints)
-        print()
+        withDistances = countDistances(startBasePoints)
+        print("With distances = ", withDistances)
 
 
 if __name__ == '__main__':
