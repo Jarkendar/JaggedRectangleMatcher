@@ -6,6 +6,8 @@ from skimage import io, measure, draw
 
 IMAGE_SUFFIX = '.png'
 POLYGON_TOLERANCE = 7
+STRAIGHT_ANGLE = 90.0
+STRAIGHT_ANGLE_TOLERANCE = 5.0
 
 
 def readImages(path, numberOfImages):
@@ -44,6 +46,28 @@ def countAngles(points):
             for i in range(1, len(points))]
 
 
+def isAngleStraight(angle):
+    return abs(angle - STRAIGHT_ANGLE) < STRAIGHT_ANGLE_TOLERANCE
+
+
+def canBeBase(angle1, angle2):
+    return isAngleStraight(angle1) and isAngleStraight(angle2)
+
+
+def chooseBestBase(potentialBases):
+    if len(potentialBases) == 1:
+        return potentialBases[0]
+    error = [((pBase[0] - STRAIGHT_ANGLE) ** 2 + (pBase[1] - STRAIGHT_ANGLE) ** 2) / 2 for pBase in potentialBases]
+    return [potentialBases[i] for i, e in enumerate(error) if e == min(error)][0]
+
+
+def turnAngleVector(angles):
+    potentialBase = [[angles[i], angles[i + 1]] for i in range(-1, len(angles) - 1) if
+                     canBeBase(angles[i], angles[i + 1])]
+    print("Potential Bases = ", potentialBase)
+    bestPotentialBase = chooseBestBase(potentialBase)
+    print("Best potential base = ", bestPotentialBase)
+
 def main():
     pathToImages = sys.argv[1]
     imageNumber = int(sys.argv[2])
@@ -52,6 +76,10 @@ def main():
     for i in images:
         polygon = findPolygon(i)
         angles = countAngles(polygon)
+        print("Angles = ", angles)
+
+        turnAngleVector(angles)
+        print()
 
 
 if __name__ == '__main__':
