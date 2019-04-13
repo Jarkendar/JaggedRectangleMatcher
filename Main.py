@@ -10,6 +10,8 @@ STRAIGHT_ANGLE = 90.0
 STRAIGHT_ANGLE_TOLERANCE = 5.0
 INNER = 'INNER'
 OUTER = 'OUTER'
+MAX_ANGLE_DIFFERENCES = 20.0
+MAX_SECTION_RATIO_DIFFERENCES = 0.2
 
 
 def readImages(path, numberOfImages):
@@ -128,12 +130,34 @@ def prepareImagesDataVector(images):
     return imagesData
 
 
+# -(1/MAX_SECTION_RATIO_DIFFERENCES) * x + 1 or 0, where x is difference between ratios
+def compareSection(sectionReference, sectionPoint):
+    referenceRatio = countMinimalSectionRatio(sectionReference[0], sectionReference[1])
+    pointRatio = countMinimalSectionRatio(sectionPoint[0], sectionPoint[1])
+    return max(0.0, -(1.0 / MAX_SECTION_RATIO_DIFFERENCES) * (abs(referenceRatio - pointRatio)) + 1.0)
+
+
+# [ [pointX, pointY], [angle, INNER/OUTER angle], [distanceLeft, distanceRight] ]
+def compare2Points(referencePoint, point):
+    sectionRatio = compareSection(referencePoint[2], point[2])
+    return sectionRatio
+
+
 def countSimilarity(reference, imageData):
-    return 0.0
+    similarityLeft = 0
+    similarityRight = 0
+    if len(reference) == len(imageData):
+        for i in range(0, len(reference)):
+            similarityLeft += compare2Points(reference[i], imageData[i])
+            similarityRight += compare2Points(reference[i], imageData[len(imageData) - 1 - i])
+    else:
+        # todo
+        print(len(reference), len(imageData))
+    return max(similarityLeft, similarityRight)
 
 
 def createSimilarities(imagesData):
-    similarities = [(reference[0], [(j, countSimilarity(reference, imageData))
+    similarities = [(reference[0], [(j, countSimilarity(reference[1][2:], imageData[1][2:]))  #cutting off base points
                                     for j, imageData in enumerate(imagesData) if i != j])
                     for i, reference in enumerate(imagesData)]
     print(similarities)
