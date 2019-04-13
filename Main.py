@@ -128,11 +128,24 @@ def prepareImagesDataVector(images):
     return imagesData
 
 
+def countSimilarity(reference, imageData):
+    return 0.0
+
+
+def createSimilarities(imagesData):
+    similarities = [(reference[0], [(j, countSimilarity(reference, imageData))
+                                    for j, imageData in enumerate(imagesData) if i != j])
+                    for i, reference in enumerate(imagesData)]
+    print(similarities)
+    return similarities
+
+
 def main():
     pathToImages = sys.argv[1]
     imageNumber = int(sys.argv[2])
     images = readImages(pathToImages, imageNumber)
     imagesData = prepareImagesDataVector(images)
+    similarities = createSimilarities(imagesData)
 
 
 if __name__ == '__main__':
