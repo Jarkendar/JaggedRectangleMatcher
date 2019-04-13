@@ -7,11 +7,16 @@ from skimage import io, measure, draw
 IMAGE_SUFFIX = '.png'
 POLYGON_TOLERANCE = 7
 STRAIGHT_ANGLE = 90.0
+FULL_ANGLE = 360.0
+HALF_ANGLE = 180.0
+ZERO_ANGLE = 0.0
 STRAIGHT_ANGLE_TOLERANCE = 5.0
 INNER = 'INNER'
 OUTER = 'OUTER'
 MAX_ANGLE_DIFFERENCES = 20.0
 MAX_SECTION_RATIO_DIFFERENCES = 0.2
+SECTION_WEIGHT = 0.5
+ANGLE_WEIGHT = 0.5
 
 
 def readImages(path, numberOfImages):
@@ -130,6 +135,19 @@ def prepareImagesDataVector(images):
     return imagesData
 
 
+# -(1/MAX
+def compareAngle(angleReference, anglePoint):
+    difference = MAX_ANGLE_DIFFERENCES
+    if angleReference[1] == INNER and anglePoint[1] == INNER:
+        difference = abs(HALF_ANGLE - (angleReference[0] + anglePoint[0]))
+    elif (angleReference[1] == INNER and anglePoint[1] == OUTER) \
+            or (angleReference[1] == OUTER and anglePoint[1] == INNER):
+        difference = abs(ZERO_ANGLE - (angleReference[0] - anglePoint[0]))
+    elif angleReference[1] == OUTER and anglePoint[1] == OUTER:
+        difference = abs(FULL_ANGLE - (angleReference[0] + anglePoint[0]))
+    return max(0.0, -(1.0 / MAX_ANGLE_DIFFERENCES) * difference + 1.0)
+
+
 # -(1/MAX_SECTION_RATIO_DIFFERENCES) * x + 1 or 0, where x is difference between ratios
 def compareSection(sectionReference, sectionPoint):
     referenceRatio = countMinimalSectionRatio(sectionReference[0], sectionReference[1])
@@ -140,7 +158,8 @@ def compareSection(sectionReference, sectionPoint):
 # [ [pointX, pointY], [angle, INNER/OUTER angle], [distanceLeft, distanceRight] ]
 def compare2Points(referencePoint, point):
     sectionRatio = compareSection(referencePoint[2], point[2])
-    return sectionRatio
+    angleRatio = compareAngle(referencePoint[1], point[1])
+    return SECTION_WEIGHT * sectionRatio + ANGLE_WEIGHT * angleRatio
 
 
 def countSimilarity(reference, imageData):
@@ -157,7 +176,7 @@ def countSimilarity(reference, imageData):
 
 
 def createSimilarities(imagesData):
-    similarities = [(reference[0], [(j, countSimilarity(reference[1][2:], imageData[1][2:]))  #cutting off base points
+    similarities = [(reference[0], [(j, countSimilarity(reference[1][2:], imageData[1][2:]))  # cutting off base points
                                     for j, imageData in enumerate(imagesData) if i != j])
                     for i, reference in enumerate(imagesData)]
     print(similarities)
