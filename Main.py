@@ -8,6 +8,8 @@ IMAGE_SUFFIX = '.png'
 POLYGON_TOLERANCE = 7
 STRAIGHT_ANGLE = 90.0
 STRAIGHT_ANGLE_TOLERANCE = 5.0
+INNER = 'INNER'
+OUTER = 'OUTER'
 
 
 def readImages(path, numberOfImages):
@@ -41,8 +43,15 @@ def countAngle(pLeft, pCenter, pRight):
     return arccos((a + b - c) / sqrt(4 * a * b)) * 180 / PI
 
 
-def countAngles(points):
-    return [[list(points[i]), countAngle(points[i - 1], points[i], points[i + 1] if i < len(points) - 1 else points[0])]
+def isInnerAngle(pointLeft, pointRight, image):
+    return INNER \
+        if image[int((pointLeft[0] + pointRight[0]) / 2), int((pointLeft[1] + pointRight[1]) / 2)] > 0 \
+        else OUTER
+
+
+def countAngles(points, image):
+    return [[list(points[i]), [countAngle(points[i - 1], points[i], points[i + 1] if i < len(points) - 1 else points[0])
+        , isInnerAngle(points[i - 1], points[i + 1] if i < len(points) - 1 else points[0], image)]]
             # [[posX, posY],angle]
             for i in range(0, len(points))]
 
@@ -58,7 +67,7 @@ def canBeBase(angle1, angle2):
 def chooseBestBase(potentialBases):
     if len(potentialBases) == 1:
         return potentialBases[0]
-    error = [((pBase[0][1] - STRAIGHT_ANGLE) ** 2 + (pBase[1][1] - STRAIGHT_ANGLE) ** 2) / 2 for pBase in
+    error = [((pBase[0][1][0] - STRAIGHT_ANGLE) ** 2 + (pBase[1][1][0] - STRAIGHT_ANGLE) ** 2) / 2 for pBase in
              potentialBases]
     return [potentialBases[i] for i, e in enumerate(error) if e == min(error)][0]
 
@@ -72,7 +81,7 @@ def turnAngleVector(angles, basePosition):
 
 def prepareVector(points):
     potentialBase = [[points[i], points[i + 1]] for i in range(-1, len(points) - 1) if
-                     canBeBase(points[i][1], points[i + 1][1])]
+                     canBeBase(points[i][1][0], points[i + 1][1][0])]
     print("Potential Bases = ", potentialBase)
     bestPotentialBase = chooseBestBase(potentialBase)
     print("Best potential base = ", bestPotentialBase)
@@ -105,14 +114,14 @@ def main():
 
     for i, image in enumerate(images):
         polygon = findPolygon(image)
-        withAngles = countAngles(polygon)
+        withAngles = countAngles(polygon, image)
         print("Angles = ", withAngles)
         startBasePoints = prepareVector(withAngles)
         print("Start base angles = ", startBasePoints)
         withDistances = countDistances(startBasePoints)
         print("With distances = ", withDistances)
         imagesData.append([i, withDistances])
-        # item = [imageIndex, [ [ [pointX, pointY], angle, [distanceLeft, distanceRight] ]... ]
+        # item = [imageIndex, [ [ [pointX, pointY], [angle, INNER/OUTER angle], [distanceLeft, distanceRight] ]... ]
     print(imagesData)
 
 
