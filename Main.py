@@ -56,12 +56,13 @@ def countAngles(points, image):
             for i in range(0, len(points))]
 
 
-def isAngleStraight(angle):
-    return abs(angle - STRAIGHT_ANGLE) < STRAIGHT_ANGLE_TOLERANCE
+def isAngleStraight(angle, addition):
+    return abs(angle - STRAIGHT_ANGLE) < STRAIGHT_ANGLE_TOLERANCE + addition
 
 
-def canBeBase(angle1, angle2):
-    return isAngleStraight(angle1) and isAngleStraight(angle2)
+def canBeBase(angle1, angle2, addition):
+    return (angle1[1] == INNER and angle2[1] == INNER) and (
+                isAngleStraight(angle1[0], addition) and isAngleStraight(angle2[0], addition))
 
 
 def chooseBestBase(potentialBases):
@@ -80,8 +81,12 @@ def turnAngleVector(angles, basePosition):
 
 
 def prepareVector(points):
-    potentialBase = [[points[i], points[i + 1]] for i in range(-1, len(points) - 1) if
-                     canBeBase(points[i][1][0], points[i + 1][1][0])]
+    potentialBase = []
+    addition = 0
+    while len(potentialBase) == 0:
+        potentialBase = [[points[i], points[i + 1]] for i in range(-1, len(points) - 1) if
+                         canBeBase(points[i][1], points[i + 1][1], addition)]
+        addition += 1
     print("Potential Bases = ", potentialBase)
     bestPotentialBase = chooseBestBase(potentialBase)
     print("Best potential base = ", bestPotentialBase)
