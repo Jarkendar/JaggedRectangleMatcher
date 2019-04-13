@@ -62,7 +62,7 @@ def isAngleStraight(angle, addition):
 
 def canBeBase(angle1, angle2, addition):
     return (angle1[1] == INNER and angle2[1] == INNER) and (
-                isAngleStraight(angle1[0], addition) and isAngleStraight(angle2[0], addition))
+            isAngleStraight(angle1[0], addition) and isAngleStraight(angle2[0], addition))
 
 
 def chooseBestBase(potentialBases):
@@ -111,12 +111,9 @@ def countMinimalSectionRatio(section1, section2):
     return section1 / section2 if section1 < section2 else section2 / section1
 
 
-def main():
-    pathToImages = sys.argv[1]
-    imageNumber = int(sys.argv[2])
-    images = readImages(pathToImages, imageNumber)
+def prepareImagesDataVector(images):
+    # return [[i, countDistances(prepareVector(countAngles(findPolygon(image), image)))] for i, image in enumerate(images)]
     imagesData = []
-
     for i, image in enumerate(images):
         polygon = findPolygon(image)
         withAngles = countAngles(polygon, image)
@@ -128,6 +125,14 @@ def main():
         imagesData.append([i, withDistances])
         # item = [imageIndex, [ [ [pointX, pointY], [angle, INNER/OUTER angle], [distanceLeft, distanceRight] ]... ]
     print(imagesData)
+    return imagesData
+
+
+def main():
+    pathToImages = sys.argv[1]
+    imageNumber = int(sys.argv[2])
+    images = readImages(pathToImages, imageNumber)
+    imagesData = prepareImagesDataVector(images)
 
 
 if __name__ == '__main__':
