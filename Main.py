@@ -201,7 +201,7 @@ def countAvgSimilarity(smaller, bigger, joinPair):
         biggerSmaller = buildSmallerSizePointList(combination, bigger, joinPair, len(smaller))
         for j in range(0, len(smaller)):
             sumSimilarityLeft += compare2Points(smaller[j], biggerSmaller[j])
-            sumSimilarityRight += compare2Points(smaller[j], biggerSmaller[len(biggerSmaller) - 1 - j])
+            sumSimilarityRight += compare2Points(smaller[j], biggerSmaller[- 1 - j])
     return sumSimilarityLeft / i, sumSimilarityRight / i
 
 
@@ -211,7 +211,7 @@ def countSimilarity(reference, imageData):
     if len(reference) == len(imageData):
         for i in range(0, len(reference)):
             similarityLeft += compare2Points(reference[i], imageData[i])
-            similarityRight += compare2Points(reference[i], imageData[len(imageData) - 1 - i])
+            similarityRight += compare2Points(reference[i], imageData[- 1 - i])
     else:
         bigger = reference if len(reference) > len(imageData) else imageData
         smaller = reference if len(reference) < len(imageData) else imageData
