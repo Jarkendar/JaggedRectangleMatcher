@@ -1,4 +1,5 @@
 import sys
+from itertools import combinations
 
 import matplotlib.pyplot as plt
 from numpy import zeros, uint8, sqrt, arccos, pi as PI, cos, deg2rad
@@ -163,16 +164,45 @@ def compare2Points(referencePoint, point):
 
 
 def join2Points(point1, point2):  # [[joined angle, joined angle/2], section]
-    angle1 = point1[1][0] if point1[1][1] == INNER else FULL_ANGLE - point1[1][0]
-    angle2 = point2[1][0] if point2[1][1] == INNER else FULL_ANGLE - point2[1][0]
+    angle1 = point1[1][0] if point1[1][1] == INNER else HALF_ANGLE - point1[1][0]
+    angle2 = point2[1][0] if point2[1][1] == INNER else HALF_ANGLE - point2[1][0]
     avgAngle = (angle1 + angle2) / 2
-    halfAvgAngle = avgAngle / 2
-    section = sqrt(point1[2][1] ** 2 + point2[2][0] ** 2 + 2 * point1[2][1] * point2[2][0] * cos(deg2rad(angle1)))
-    return [[avgAngle, halfAvgAngle], section]
+    # halfAvgAngle = avgAngle / 2
+    sectionLeft = sqrt(point1[2][0] ** 2 + (point1[2][1] / 2) ** 2 + point1[2][0] * point1[2][1] * cos(deg2rad(angle1)))
+    sectionRight = sqrt(
+        (point2[2][0] / 2) ** 2 + point2[2][1] ** 2 + point2[2][0] * point2[2][1] * cos(deg2rad(angle2)))
+    return [[], [avgAngle, INNER], [sectionLeft, sectionRight]]
 
 
 def preparePairPoints(points):  # list of [[joined angle, joined angle/2], section]
     return [join2Points(points[i], points[i + 1]) for i in range(len(points) - 1)]
+
+
+def buildSmallerSizePointList(combination, bigger, joinPair, smallerLength):
+    iterator = 0
+    combinationIterator = combination[0]
+    smaller = []
+    for i in range(smallerLength):
+        if i == combinationIterator:
+            smaller.append(joinPair[iterator])
+            iterator += 1
+        else:
+            smaller.append(bigger[iterator])
+        iterator += 1
+    print(combination)
+    print(smaller)
+    return smaller
+
+
+def countAvgSimilarity(smaller, bigger, joinPair):
+    sumSimilarityLeft = 0.0
+    sumSimilarityRight = 0.0
+    for i, combination in enumerate(combinations(range(len(smaller)), len(bigger) - len(smaller))):
+        biggerSmaller = buildSmallerSizePointList(combination, bigger, joinPair, len(smaller))
+        for j in range(0, len(smaller)):
+            sumSimilarityLeft += compare2Points(smaller[j], biggerSmaller[j])
+            sumSimilarityRight += compare2Points(smaller[j], biggerSmaller[len(biggerSmaller) - 1 - j])
+    return sumSimilarityLeft / i, sumSimilarityRight / i
 
 
 def countSimilarity(reference, imageData):
@@ -186,7 +216,7 @@ def countSimilarity(reference, imageData):
         bigger = reference if len(reference) > len(imageData) else imageData
         smaller = reference if len(reference) < len(imageData) else imageData
         joinPoints = preparePairPoints(bigger)
-        # todo
+        similarityLeft, similarityRight = countAvgSimilarity(smaller, bigger, joinPoints)
         print(len(reference), len(imageData), len(joinPoints), joinPoints)
     return max(similarityLeft, similarityRight)
 
