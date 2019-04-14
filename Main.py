@@ -163,8 +163,8 @@ def compare2Points(referencePoint, point):
 
 
 def join2Points(point1, point2):  # [[joined angle, joined angle/2], section]
-    angle1 = point1[1][0] if point1[1][0] == INNER else FULL_ANGLE - point1[1][0]
-    angle2 = point2[1][0] if point2[1][0] == INNER else FULL_ANGLE - point2[1][0]
+    angle1 = point1[1][0] if point1[1][1] == INNER else FULL_ANGLE - point1[1][0]
+    angle2 = point2[1][0] if point2[1][1] == INNER else FULL_ANGLE - point2[1][0]
     avgAngle = (angle1 + angle2) / 2
     halfAvgAngle = avgAngle / 2
     section = sqrt(point1[2][1] ** 2 + point2[2][0] ** 2 + 2 * point1[2][1] * point2[2][0] * cos(deg2rad(angle1)))
