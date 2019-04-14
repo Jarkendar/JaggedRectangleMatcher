@@ -162,18 +162,17 @@ def compare2Points(referencePoint, point):
     return SECTION_WEIGHT * sectionRatio + ANGLE_WEIGHT * angleRatio
 
 
-def preparePairPoints(points):
-    pairs = []
-    for i in range(len(points) - 1):
-        angle1 = points[i][1][0] if points[i][1][0] == INNER else FULL_ANGLE - points[i][1][0]
-        angle2 = points[i + 1][1][0] if points[i + 1][1][0] == INNER else FULL_ANGLE - points[i + 1][1][0]
-        avgAngle = (angle1 + angle2) / 2
-        halfAvgAngle = avgAngle / 2
-        section = sqrt(
-            points[i][2][1] ** 2 + points[i + 1][2][0] ** 2 + 2 * points[i][2][1] * points[i + 1][2][0] * cos(
-                deg2rad(angle1)))
-        pairs.append([[avgAngle, halfAvgAngle], section])
-    return pairs
+def join2Points(point1, point2):  # [[joined angle, joined angle/2], section]
+    angle1 = point1[1][0] if point1[1][0] == INNER else FULL_ANGLE - point1[1][0]
+    angle2 = point2[1][0] if point2[1][0] == INNER else FULL_ANGLE - point2[1][0]
+    avgAngle = (angle1 + angle2) / 2
+    halfAvgAngle = avgAngle / 2
+    section = sqrt(point1[2][1] ** 2 + point2[2][0] ** 2 + 2 * point1[2][1] * point2[2][0] * cos(deg2rad(angle1)))
+    return [[avgAngle, halfAvgAngle], section]
+
+
+def preparePairPoints(points):  # list of [[joined angle, joined angle/2], section]
+    return [join2Points(points[i], points[i + 1]) for i in range(len(points) - 1)]
 
 
 def countSimilarity(reference, imageData):
@@ -184,8 +183,11 @@ def countSimilarity(reference, imageData):
             similarityLeft += compare2Points(reference[i], imageData[i])
             similarityRight += compare2Points(reference[i], imageData[len(imageData) - 1 - i])
     else:
+        bigger = reference if len(reference) > len(imageData) else imageData
+        smaller = reference if len(reference) < len(imageData) else imageData
+        joinPoints = preparePairPoints(bigger)
         # todo
-        print(len(reference), len(imageData))
+        print(len(reference), len(imageData), len(joinPoints), joinPoints)
     return max(similarityLeft, similarityRight)
 
 
