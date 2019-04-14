@@ -1,7 +1,7 @@
 import sys
 
 import matplotlib.pyplot as plt
-from numpy import zeros, uint8, sqrt, arccos, pi as PI
+from numpy import zeros, uint8, sqrt, arccos, pi as PI, cos, deg2rad
 from skimage import io, measure, draw
 
 IMAGE_SUFFIX = '.png'
@@ -160,6 +160,20 @@ def compare2Points(referencePoint, point):
     sectionRatio = compareSection(referencePoint[2], point[2])
     angleRatio = compareAngle(referencePoint[1], point[1])
     return SECTION_WEIGHT * sectionRatio + ANGLE_WEIGHT * angleRatio
+
+
+def preparePairPoints(points):
+    pairs = []
+    for i in range(len(points) - 1):
+        angle1 = points[i][1][0] if points[i][1][0] == INNER else FULL_ANGLE - points[i][1][0]
+        angle2 = points[i + 1][1][0] if points[i + 1][1][0] == INNER else FULL_ANGLE - points[i + 1][1][0]
+        avgAngle = (angle1 + angle2) / 2
+        halfAvgAngle = avgAngle / 2
+        section = sqrt(
+            points[i][2][1] ** 2 + points[i + 1][2][0] ** 2 + 2 * points[i][2][1] * points[i + 1][2][0] * cos(
+                deg2rad(angle1)))
+        pairs.append([[avgAngle, halfAvgAngle], section])
+    return pairs
 
 
 def countSimilarity(reference, imageData):
