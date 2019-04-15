@@ -234,6 +234,7 @@ def createRanking(similarities):
     for objectSimilarity in similarities:
         objectSimilarity[1].sort(key=lambda tup: tup[1], reverse=True)
         ranking.append([objectSimilarity[0], [t[0] for t in objectSimilarity[1]]])
+    ranking.sort(key=lambda t: t[0])
     print(ranking)
     return ranking
 
