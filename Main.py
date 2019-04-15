@@ -229,13 +229,21 @@ def createSimilarities(imagesData):
     return similarities
 
 
+def createRanking(similarities):
+    ranking = []
+    for objectSimilarity in similarities:
+        objectSimilarity[1].sort(key=lambda tup: tup[1], reverse=True)
+        ranking.append([objectSimilarity[0], [t[0] for t in objectSimilarity[1]]])
+    print(ranking)
+    return ranking
+
 def main():
     pathToImages = sys.argv[1]
     imageNumber = int(sys.argv[2])
     images = readImages(pathToImages, imageNumber)
     imagesData = prepareImagesDataVector(images)
     similarities = createSimilarities(imagesData)
-
+    createRanking(similarities)
 
 if __name__ == '__main__':
     main()
