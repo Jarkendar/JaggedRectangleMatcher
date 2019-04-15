@@ -238,13 +238,20 @@ def createRanking(similarities):
     print(ranking)
     return ranking
 
+
+def printRanking(ranking):
+    print('\n'.join([' '.join([str(i) for i in item[1]]) for item in ranking]))
+
+
 def main():
     pathToImages = sys.argv[1]
     imageNumber = int(sys.argv[2])
     images = readImages(pathToImages, imageNumber)
     imagesData = prepareImagesDataVector(images)
     similarities = createSimilarities(imagesData)
-    createRanking(similarities)
+    ranking = createRanking(similarities)
+    printRanking(ranking)
+
 
 if __name__ == '__main__':
     main()
