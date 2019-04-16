@@ -113,7 +113,10 @@ def calcDist(point1, point2):
 
 def countDistances(points):
     return [[points[i][0], points[i][1],
-             [calcDist(points[i][0], points[i - 1][0]), calcDist(points[i][0], points[(i + 1) % len(points)][0])]]
+             [calcDist(points[i][0], points[i - 1][0]), calcDist(points[i][0], points[(i + 1) % len(points)][0]),
+              countMinimalSectionRatio(calcDist(points[i][0], points[i - 1][0]), calcDist(points[i][0],
+                                                                                          points[(i + 1) % len(points)][
+                                                                                              0]))]]
             for i in range(len(points))]
 
 
@@ -153,9 +156,9 @@ def compareAngle(angleReference, anglePoint):
 
 # -(1/MAX_SECTION_RATIO_DIFFERENCES) * x + 1 or 0, where x is difference between ratios
 def compareSection(sectionReference, sectionPoint):
-    referenceRatio = countMinimalSectionRatio(sectionReference[0], sectionReference[1])
-    pointRatio = countMinimalSectionRatio(sectionPoint[0], sectionPoint[1])
-    return max(0.0, -(1.0 / MAX_SECTION_RATIO_DIFFERENCES) * (abs(referenceRatio - pointRatio)) + 1.0)
+    # referenceRatio = countMinimalSectionRatio(sectionReference[0], sectionReference[1])
+    # pointRatio = countMinimalSectionRatio(sectionPoint[0], sectionPoint[1])
+    return max(0.0, -(1.0 / MAX_SECTION_RATIO_DIFFERENCES) * (abs(sectionReference[2] - sectionPoint[2])) + 1.0)
 
 
 # [ [pointX, pointY], [angle, INNER/OUTER angle], [distanceLeft, distanceRight] ]
@@ -178,7 +181,8 @@ def join2Points(point1Left, point1, point2, point2Right):  # [[joined angle, INN
 
     sectionLeft = calcDist(point1Left[0], avgPoint)
     sectionRight = calcDist(avgPoint, point2Right[0])
-    return [avgPoint, [angle, angleLocality], [sectionLeft, sectionRight]]
+    return [avgPoint, [angle, angleLocality],
+            [sectionLeft, sectionRight, countMinimalSectionRatio(sectionLeft, sectionRight)]]
 
 
 def preparePairPoints(points):  # list of [[joined angle, joined angle/2], section]
