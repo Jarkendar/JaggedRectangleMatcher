@@ -2,7 +2,7 @@ import sys
 from itertools import combinations
 
 import matplotlib.pyplot as plt
-from numpy import zeros, uint8, sqrt, arccos, pi as PI, cos, deg2rad
+from numpy import zeros, uint8, sqrt, arccos, pi as PI
 from skimage import io, measure, draw
 
 IMAGE_SUFFIX = '.png'
@@ -166,29 +166,24 @@ def compare2Points(referencePoint, point):
 
 
 def join2Points(point1Left, point1, point2, point2Right):  # [[joined angle, INNER/OUTER], [sectionLeft, sectionRight]]
-    avgX = (point1[0][0] + point2[0][0]) / 2
-    avgY = (point1[0][1] + point2[0][1]) / 2
-    angle = countAngle(point1Left[0], [avgX, avgY], point2Right[0])
+    avgPoint = [(point1[0][0] + point2[0][0]) / 2.0, (point1[0][1] + point2[0][1]) / 2.0]
+    angle = countAngle(point1Left[0], avgPoint, point2Right[0])
+    angleLocality = INNER
     if point1[1][1] == point2[1][1]:
         angleLocality = point1[1][1]
-    # todo check condition
-    elif (point1[1][0] > point2[1][0] and point1[1][1] == INNER) or (
-            point1[1][0] < point2[1][0] and point2[1][1] == INNER):
-        angleLocality = OUTER
-    elif (point1[1][0] > point2[1][0] and point1[1][1] == OUTER) or (
-            point1[1][0] < point2[1][0] and point2[1][1] == OUTER):
-        angleLocality = INNER
-    angle1 = point1[1][0] if point1[1][1] == INNER else HALF_ANGLE - point1[1][0]
-    angle2 = point2[1][0] if point2[1][1] == INNER else HALF_ANGLE - point2[1][0]
-    sectionLeft = sqrt(point1[2][0] ** 2 + (point1[2][1] / 2) ** 2 + point1[2][0] * point1[2][1] * cos(deg2rad(angle1)))
-    sectionRight = sqrt(
-        (point2[2][0] / 2) ** 2 + point2[2][1] ** 2 + point2[2][0] * point2[2][1] * cos(deg2rad(angle2)))
-    return [[], [angle, angleLocality], [sectionLeft, sectionRight]]
+    elif point1[1][0] > point2[1][0]:
+        angleLocality = point2[1][1]
+    elif point1[1][0] <= point2[1][0]:
+        angleLocality = point1[1][1]
+
+    sectionLeft = calcDist(point1Left[0], avgPoint)
+    sectionRight = calcDist(avgPoint, point2Right[0])
+    return [avgPoint, [angle, angleLocality], [sectionLeft, sectionRight]]
 
 
 def preparePairPoints(points):  # list of [[joined angle, joined angle/2], section]
-    return [join2Points(points[i - 1], points[i], points[i + 1], points[(i + 2) % len(points)]) for i in
-            range(len(points) - 1)]
+    return [join2Points(points[i - 1], points[i], points[(i + 1) % len(points)], points[(i + 2) % len(points)]) for i in
+            range(1, len(points))]
 
 
 def buildSmallerSizePointList(combination, bigger, joinPair, smallerLength):
@@ -210,33 +205,33 @@ def buildSmallerSizePointList(combination, bigger, joinPair, smallerLength):
 def countAvgSimilarity(smaller, bigger, joinPair):
     sumSimilarityLeft = 0.0
     sumSimilarityRight = 0.0
-    i = 1
+    i = 0.0
     for i, combination in enumerate(combinations(range(len(smaller)), len(bigger) - len(smaller))):
         biggerSmaller = buildSmallerSizePointList(combination, bigger, joinPair, len(smaller))
         for j in range(0, len(smaller)):
             sumSimilarityLeft += compare2Points(smaller[j], biggerSmaller[j])
             sumSimilarityRight += compare2Points(smaller[j], biggerSmaller[- 1 - j])
-    return sumSimilarityLeft / i, sumSimilarityRight / i
+    return sumSimilarityLeft / (i if i > 0.0 else 1.0), sumSimilarityRight / (i if i > 0.0 else 1.0)
 
 
 def countSimilarity(reference, imageData):
     similarityLeft = 0
     similarityRight = 0
     if len(reference) == len(imageData):
-        for i in range(0, len(reference)):
+        for i in range(2, len(reference)):
             similarityLeft += compare2Points(reference[i], imageData[i])
             similarityRight += compare2Points(reference[i], imageData[- 1 - i])
     else:
         bigger = reference if len(reference) > len(imageData) else imageData
         smaller = reference if len(reference) < len(imageData) else imageData
         joinPoints = preparePairPoints(bigger)
-        similarityLeft, similarityRight = countAvgSimilarity(smaller, bigger, joinPoints)
+        similarityLeft, similarityRight = countAvgSimilarity(smaller[2:], bigger[2:], joinPoints)
         print(len(reference), len(imageData), len(joinPoints), joinPoints)
     return max(similarityLeft, similarityRight)
 
 
 def createSimilarities(imagesData):
-    similarities = [(reference[0], [(j, countSimilarity(reference[1][2:], imageData[1][2:]))  # cutting off base points
+    similarities = [(reference[0], [(j, countSimilarity(reference[1], imageData[1]))  # cutting off base points
                                     for j, imageData in enumerate(imagesData) if i != j])
                     for i, reference in enumerate(imagesData)]
     print(similarities)
