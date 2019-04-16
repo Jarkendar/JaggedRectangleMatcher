@@ -163,19 +163,30 @@ def compare2Points(referencePoint, point):
     return SECTION_WEIGHT * sectionRatio + ANGLE_WEIGHT * angleRatio
 
 
-def join2Points(point1, point2):  # [[joined angle, joined angle/2], section]
+def join2Points(point1Left, point1, point2, point2Right):  # [[joined angle, INNER/OUTER], [sectionLeft, sectionRight]]
+    avgX = (point1[0][0] + point2[0][0]) / 2
+    avgY = (point1[0][1] + point2[0][1]) / 2
+    angle = countAngle(point1Left[0], [avgX, avgY], point2Right[0])
+    if point1[1][1] == point2[1][1]:
+        angleLocality = point1[1][1]
+    # todo check condition
+    elif (point1[1][0] > point2[1][0] and point1[1][1] == INNER) or (
+            point1[1][0] < point2[1][0] and point2[1][1] == INNER):
+        angleLocality = OUTER
+    elif (point1[1][0] > point2[1][0] and point1[1][1] == OUTER) or (
+            point1[1][0] < point2[1][0] and point2[1][1] == OUTER):
+        angleLocality = INNER
     angle1 = point1[1][0] if point1[1][1] == INNER else HALF_ANGLE - point1[1][0]
     angle2 = point2[1][0] if point2[1][1] == INNER else HALF_ANGLE - point2[1][0]
-    avgAngle = (angle1 + angle2) / 2
-    # halfAvgAngle = avgAngle / 2
     sectionLeft = sqrt(point1[2][0] ** 2 + (point1[2][1] / 2) ** 2 + point1[2][0] * point1[2][1] * cos(deg2rad(angle1)))
     sectionRight = sqrt(
         (point2[2][0] / 2) ** 2 + point2[2][1] ** 2 + point2[2][0] * point2[2][1] * cos(deg2rad(angle2)))
-    return [[], [avgAngle, INNER], [sectionLeft, sectionRight]]
+    return [[], [angle, angleLocality], [sectionLeft, sectionRight]]
 
 
 def preparePairPoints(points):  # list of [[joined angle, joined angle/2], section]
-    return [join2Points(points[i], points[i + 1]) for i in range(len(points) - 1)]
+    return [join2Points(points[i - 1], points[i], points[i + 1], points[(i + 2) % len(points)]) for i in
+            range(len(points) - 1)]
 
 
 def buildSmallerSizePointList(combination, bigger, joinPair, smallerLength):
