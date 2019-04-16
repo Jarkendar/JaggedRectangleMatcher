@@ -51,15 +51,17 @@ def countAngle(pLeft, pCenter, pRight):
     return arccos((a + b - c) / sqrt(4 * a * b)) * 180 / PI
 
 
-def isInnerAngle(pointLeft, pointRight, image):
+def isInnerAngle(pointLeft, pointCenter, pointRight, image):
+    betweenX = (pointLeft[0] + pointRight[0]) / 2
+    betweenY = (pointLeft[1] + pointRight[1]) / 2
     return INNER \
-        if image[int((pointLeft[0] + pointRight[0]) / 2), int((pointLeft[1] + pointRight[1]) / 2)] > 0 \
+        if image[int((pointCenter[0] + betweenX) / 2), int((pointCenter[1] + betweenY) / 2)] > 0 \
         else OUTER
 
 
 def countAngles(points, image):
     return [[list(points[i]), [countAngle(points[i - 1], points[i], points[i + 1] if i < len(points) - 1 else points[0])
-        , isInnerAngle(points[i - 1], points[i + 1] if i < len(points) - 1 else points[0], image)]]
+        , isInnerAngle(points[i - 1], points[i], points[i + 1] if i < len(points) - 1 else points[0], image)]]
             # [[posX, posY],angle]
             for i in range(0, len(points))]
 
@@ -208,6 +210,7 @@ def buildSmallerSizePointList(combination, bigger, joinPair, smallerLength):
 def countAvgSimilarity(smaller, bigger, joinPair):
     sumSimilarityLeft = 0.0
     sumSimilarityRight = 0.0
+    i = 1
     for i, combination in enumerate(combinations(range(len(smaller)), len(bigger) - len(smaller))):
         biggerSmaller = buildSmallerSizePointList(combination, bigger, joinPair, len(smaller))
         for j in range(0, len(smaller)):
