@@ -15,7 +15,9 @@ STRAIGHT_ANGLE_TOLERANCE = 5.0
 INNER = 'INNER'
 OUTER = 'OUTER'
 MAX_ANGLE_DIFFERENCES = 20.0
+INVERSE_MAX_ANGLE_DIFFERENCES = 1.0 / MAX_ANGLE_DIFFERENCES
 MAX_SECTION_RATIO_DIFFERENCES = 0.2
+INVERSE_MAX_SECTION_RATIO_DIFFERENCES = 1.0 / MAX_SECTION_RATIO_DIFFERENCES
 SECTION_WEIGHT = 0.5
 ANGLE_WEIGHT = 0.5
 
@@ -97,13 +99,13 @@ def prepareVector(points):
         potentialBase = [[points[i], points[i + 1]] for i in range(-1, len(points) - 1) if
                          canBeBase(points[i][1], points[i + 1][1], addition)]
         addition += 1
-    print("Potential Bases = ", potentialBase)
+    # print("Potential Bases = ", potentialBase)
     bestPotentialBase = chooseBestBase(potentialBase)
-    print("Best potential base = ", bestPotentialBase)
+    # print("Best potential base = ", bestPotentialBase)
     angleBasePosition = [i for i in range(len(points)) if points[i] in bestPotentialBase]
-    print("Base position = ", angleBasePosition)
+    # print("Base position = ", angleBasePosition)
     turnedVector = turnAngleVector(points, angleBasePosition)
-    print("Turned vector = ", turnedVector)
+    # print("Turned vector = ", turnedVector)
     return turnedVector
 
 
@@ -130,14 +132,14 @@ def prepareImagesDataVector(images):
     for i, image in enumerate(images):
         polygon = findPolygon(image)
         withAngles = countAngles(polygon, image)
-        print("Angles = ", withAngles)
+        # print("Angles = ", withAngles)
         startBasePoints = prepareVector(withAngles)
-        print("Start base angles = ", startBasePoints)
+        # print("Start base angles = ", startBasePoints)
         withDistances = countDistances(startBasePoints)
-        print("With distances = ", withDistances)
+        # print("With distances = ", withDistances)
         imagesData.append([i, withDistances])
         # item = [imageIndex, [ [ [pointX, pointY], [angle, INNER/OUTER angle], [distanceLeft, distanceRight] ]... ]
-    print(imagesData)
+    # print(imagesData)
     return imagesData
 
 
@@ -146,19 +148,16 @@ def compareAngle(angleReference, anglePoint):
     difference = MAX_ANGLE_DIFFERENCES
     if angleReference[1] == INNER and anglePoint[1] == INNER:
         difference = abs(HALF_ANGLE - (angleReference[0] + anglePoint[0]))
-    elif (angleReference[1] == INNER and anglePoint[1] == OUTER) \
-            or (angleReference[1] == OUTER and anglePoint[1] == INNER):
-        difference = abs(ZERO_ANGLE - (angleReference[0] - anglePoint[0]))
     elif angleReference[1] == OUTER and anglePoint[1] == OUTER:
         difference = abs(FULL_ANGLE - (angleReference[0] + anglePoint[0]))
-    return max(0.0, -(1.0 / MAX_ANGLE_DIFFERENCES) * difference + 1.0)
+    else:
+        difference = abs(ZERO_ANGLE - (angleReference[0] - anglePoint[0]))
+    return max(0.0, -INVERSE_MAX_ANGLE_DIFFERENCES * difference + 1.0)
 
 
 # -(1/MAX_SECTION_RATIO_DIFFERENCES) * x + 1 or 0, where x is difference between ratios
 def compareSection(sectionReference, sectionPoint):
-    # referenceRatio = countMinimalSectionRatio(sectionReference[0], sectionReference[1])
-    # pointRatio = countMinimalSectionRatio(sectionPoint[0], sectionPoint[1])
-    return max(0.0, -(1.0 / MAX_SECTION_RATIO_DIFFERENCES) * (abs(sectionReference[2] - sectionPoint[2])) + 1.0)
+    return max(0.0, -INVERSE_MAX_SECTION_RATIO_DIFFERENCES * (abs(sectionReference[2] - sectionPoint[2])) + 1.0)
 
 
 # [ [pointX, pointY], [angle, INNER/OUTER angle], [distanceLeft, distanceRight] ]
@@ -187,23 +186,23 @@ def join2Points(point1Left, point1, point2, point2Right):  # [[joined angle, INN
 
 def preparePairPoints(points):  # list of [[joined angle, joined angle/2], section]
     return [join2Points(points[i - 1], points[i], points[(i + 1) % len(points)], points[(i + 2) % len(points)]) for i in
-            range(1, len(points))]
+            range(len(points) - 1)]
 
 
-def buildSmallerSizePointList(combination, bigger, joinPair, smallerLength):
-    iterator = 0
-    combinationIterator = combination[0]
-    smaller = []
-    for i in range(smallerLength):
-        if i == combinationIterator:
-            smaller.append(joinPair[iterator])
-            iterator += 1
-        else:
-            smaller.append(bigger[iterator])
-        iterator += 1
-    print(combination)
-    print(smaller)
-    return smaller
+def buildSmallerSizePointList(combination, bigger, joinPair):
+    copy = bigger.copy()
+    # print()
+    # print(copy)
+    for i in combination:
+        del copy[i]
+        del copy[i]
+        # print('del', i, copy)
+        copy.insert(i, joinPair[i])
+        # print('insert', copy)
+    # print(combination)
+    # print(copy)
+    # print(smaller)
+    return copy
 
 
 def countAvgSimilarity(smaller, bigger, joinPair):
@@ -211,7 +210,7 @@ def countAvgSimilarity(smaller, bigger, joinPair):
     sumSimilarityRight = 0.0
     i = 0.0
     for i, combination in enumerate(combinations(range(len(smaller)), len(bigger) - len(smaller))):
-        biggerSmaller = buildSmallerSizePointList(combination, bigger, joinPair, len(smaller))
+        biggerSmaller = buildSmallerSizePointList(combination, bigger, joinPair)
         for j in range(0, len(smaller)):
             sumSimilarityLeft += compare2Points(smaller[j], biggerSmaller[j])
             sumSimilarityRight += compare2Points(smaller[j], biggerSmaller[- 1 - j])
@@ -222,23 +221,23 @@ def countSimilarity(reference, imageData):
     similarityLeft = 0
     similarityRight = 0
     if len(reference) == len(imageData):
-        for i in range(2, len(reference)):
+        for i in range(len(reference)):
             similarityLeft += compare2Points(reference[i], imageData[i])
             similarityRight += compare2Points(reference[i], imageData[- 1 - i])
     else:
         bigger = reference if len(reference) > len(imageData) else imageData
         smaller = reference if len(reference) < len(imageData) else imageData
         joinPoints = preparePairPoints(bigger)
-        similarityLeft, similarityRight = countAvgSimilarity(smaller[2:], bigger[2:], joinPoints)
-        print(len(reference), len(imageData), len(joinPoints), joinPoints)
+        similarityLeft, similarityRight = countAvgSimilarity(smaller, bigger, joinPoints)
+        # print(len(reference), len(imageData), len(joinPoints), joinPoints)
     return max(similarityLeft, similarityRight)
 
 
 def createSimilarities(imagesData):
-    similarities = [(reference[0], [(j, countSimilarity(reference[1], imageData[1]))  # cutting off base points
+    similarities = [(reference[0], [(j, countSimilarity(reference[1][2:], imageData[1][2:]))  # cutting off base points
                                     for j, imageData in enumerate(imagesData) if i != j])
                     for i, reference in enumerate(imagesData)]
-    print(similarities)
+    # print(similarities)
     return similarities
 
 
@@ -248,7 +247,7 @@ def createRanking(similarities):
         objectSimilarity[1].sort(key=lambda tup: tup[1], reverse=True)
         ranking.append([objectSimilarity[0], [t[0] for t in objectSimilarity[1]]])
     ranking.sort(key=lambda t: t[0])
-    print(ranking)
+    # print(ranking)
     return ranking
 
 
