@@ -6,20 +6,23 @@ from numpy import zeros, uint8, sqrt, arccos, pi as PI
 from skimage import io, measure, draw
 
 IMAGE_SUFFIX = '.png'
-POLYGON_TOLERANCE = 7
+POLYGON_TOLERANCE = 9  # more = faster
 STRAIGHT_ANGLE = 90.0
 FULL_ANGLE = 360.0
 HALF_ANGLE = 180.0
 ZERO_ANGLE = 0.0
-STRAIGHT_ANGLE_TOLERANCE = 5.0
+STRAIGHT_ANGLE_TOLERANCE = 5.0  # no influence
 INNER = 'INNER'
 OUTER = 'OUTER'
-MAX_ANGLE_DIFFERENCES = 20.0
+MAX_ANGLE_DIFFERENCES = 14.0  # best 14 in range 10-20
 INVERSE_MAX_ANGLE_DIFFERENCES = 1.0 / MAX_ANGLE_DIFFERENCES
-MAX_SECTION_RATIO_DIFFERENCES = 0.2
+MAX_SECTION_RATIO_DIFFERENCES = 0.1  # best 0.1 in range 0.05-0.2
 INVERSE_MAX_SECTION_RATIO_DIFFERENCES = 1.0 / MAX_SECTION_RATIO_DIFFERENCES
-SECTION_WEIGHT = 0.5
-ANGLE_WEIGHT = 0.5
+SECTION_WEIGHT = 1.0
+ANGLE_WEIGHT = 2.125  # best in range 0.25-4.0
+
+
+# COMBINATION_USE_PROB = 0.75 # less = faster, required change in method countAvgSimilarity
 
 
 def readImages(path, numberOfImages):
@@ -143,7 +146,7 @@ def prepareImagesDataVector(images):
     return imagesData
 
 
-# -(1/MAX
+# -(1/MAX_ANGLE_DIFFERENCES) * x + 1 or 0, where x is difference between angles
 def compareAngle(angleReference, anglePoint):
     difference = MAX_ANGLE_DIFFERENCES
     if angleReference[1] == INNER and anglePoint[1] == INNER:
@@ -152,19 +155,19 @@ def compareAngle(angleReference, anglePoint):
         difference = abs(FULL_ANGLE - (angleReference[0] + anglePoint[0]))
     else:
         difference = abs(ZERO_ANGLE - (angleReference[0] - anglePoint[0]))
-    return max(0.0, -INVERSE_MAX_ANGLE_DIFFERENCES * difference + 1.0)
+    return 0.0 if difference > MAX_ANGLE_DIFFERENCES else -INVERSE_MAX_ANGLE_DIFFERENCES * difference + 1.0
 
 
 # -(1/MAX_SECTION_RATIO_DIFFERENCES) * x + 1 or 0, where x is difference between ratios
 def compareSection(sectionReference, sectionPoint):
-    return max(0.0, -INVERSE_MAX_SECTION_RATIO_DIFFERENCES * (abs(sectionReference[2] - sectionPoint[2])) + 1.0)
+    difference = abs(sectionReference[2] - sectionPoint[2])
+    return 0.0 if difference > MAX_SECTION_RATIO_DIFFERENCES else -INVERSE_MAX_SECTION_RATIO_DIFFERENCES * difference + 1.0
 
 
 # [ [pointX, pointY], [angle, INNER/OUTER angle], [distanceLeft, distanceRight] ]
 def compare2Points(referencePoint, point):
-    sectionRatio = compareSection(referencePoint[2], point[2])
-    angleRatio = compareAngle(referencePoint[1], point[1])
-    return SECTION_WEIGHT * sectionRatio + ANGLE_WEIGHT * angleRatio
+    return SECTION_WEIGHT * compareSection(referencePoint[2], point[2]) + ANGLE_WEIGHT * compareAngle(referencePoint[1],
+                                                                                                      point[1])
 
 
 def join2Points(point1Left, point1, point2, point2Right):  # [[joined angle, INNER/OUTER], [sectionLeft, sectionRight]]
@@ -191,30 +194,29 @@ def preparePairPoints(points):  # list of [[joined angle, joined angle/2], secti
 
 def buildSmallerSizePointList(combination, bigger, joinPair):
     copy = bigger.copy()
-    # print()
-    # print(copy)
     for i in combination:
         del copy[i]
         del copy[i]
-        # print('del', i, copy)
         copy.insert(i, joinPair[i])
-        # print('insert', copy)
-    # print(combination)
-    # print(copy)
-    # print(smaller)
     return copy
 
 
 def countAvgSimilarity(smaller, bigger, joinPair):
     sumSimilarityLeft = 0.0
     sumSimilarityRight = 0.0
-    i = 0.0
+    i = 0
+    # counter = 0
     for i, combination in enumerate(combinations(range(len(smaller)), len(bigger) - len(smaller))):
+        # if random() > COMBINATION_USE_PROB:
+        #     counter += 1
+        #     continue
         biggerSmaller = buildSmallerSizePointList(combination, bigger, joinPair)
         for j in range(0, len(smaller)):
             sumSimilarityLeft += compare2Points(smaller[j], biggerSmaller[j])
             sumSimilarityRight += compare2Points(smaller[j], biggerSmaller[- 1 - j])
-    return sumSimilarityLeft / (i if i > 0.0 else 1.0), sumSimilarityRight / (i if i > 0.0 else 1.0)
+    # divider = (i-counter) if (i-counter) > 0.0 else 1.0
+    divider = i if i > 0.0 else 1.0
+    return sumSimilarityLeft / divider, sumSimilarityRight / divider
 
 
 def countSimilarity(reference, imageData):
