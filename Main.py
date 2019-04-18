@@ -5,24 +5,26 @@ import matplotlib.pyplot as plt
 from numpy import zeros, uint8, sqrt, arccos, pi as PI
 from skimage import io, measure, draw
 
+#CONSTANT
 IMAGE_SUFFIX = '.png'
-POLYGON_TOLERANCE = 9  # more = faster
 STRAIGHT_ANGLE = 90.0
 FULL_ANGLE = 360.0
 HALF_ANGLE = 180.0
 ZERO_ANGLE = 0.0
-STRAIGHT_ANGLE_TOLERANCE = 5.0  # no influence
 INNER = 'INNER'
 OUTER = 'OUTER'
+
+#PARAMS
+POLYGON_TOLERANCE = 9  # more = faster
+STRAIGHT_ANGLE_TOLERANCE = 5.0  # no influence
 MAX_ANGLE_DIFFERENCES = 14.0  # best 14 in range 10-20
-INVERSE_MAX_ANGLE_DIFFERENCES = 1.0 / MAX_ANGLE_DIFFERENCES
 MAX_SECTION_RATIO_DIFFERENCES = 0.1  # best 0.1 in range 0.05-0.2
-INVERSE_MAX_SECTION_RATIO_DIFFERENCES = 1.0 / MAX_SECTION_RATIO_DIFFERENCES
 SECTION_WEIGHT = 1.0
 ANGLE_WEIGHT = 2.125  # best in range 0.25-4.0
 
-
-# COMBINATION_USE_PROB = 0.75 # less = faster, required change in method countAvgSimilarity
+#VARIABLES DEPENDENT FROM PARAMS
+INVERSE_MAX_ANGLE_DIFFERENCES = 1.0 / MAX_ANGLE_DIFFERENCES
+INVERSE_MAX_SECTION_RATIO_DIFFERENCES = 1.0 / MAX_SECTION_RATIO_DIFFERENCES
 
 
 def readImages(path, numberOfImages):
@@ -102,13 +104,9 @@ def prepareVector(points):
         potentialBase = [[points[i], points[i + 1]] for i in range(-1, len(points) - 1) if
                          canBeBase(points[i][1], points[i + 1][1], addition)]
         addition += 1
-    # print("Potential Bases = ", potentialBase)
     bestPotentialBase = chooseBestBase(potentialBase)
-    # print("Best potential base = ", bestPotentialBase)
     angleBasePosition = [i for i in range(len(points)) if points[i] in bestPotentialBase]
-    # print("Base position = ", angleBasePosition)
     turnedVector = turnAngleVector(points, angleBasePosition)
-    # print("Turned vector = ", turnedVector)
     return turnedVector
 
 
@@ -118,11 +116,11 @@ def calcDist(point1, point2):
 
 def countDistances(points):
     return [[points[i][0], points[i][1],
-             [calcDist(points[i][0], points[i - 1][0]), calcDist(points[i][0], points[(i + 1) % len(points)][0]),
-              countMinimalSectionRatio(calcDist(points[i][0], points[i - 1][0]), calcDist(points[i][0],
-                                                                                          points[(i + 1) % len(points)][
-                                                                                              0]))]]
-            for i in range(len(points))]
+             [calcDist(points[i][0], points[i - 1][0]),
+              calcDist(points[i][0], points[(i + 1) % len(points)][0]),
+              countMinimalSectionRatio(calcDist(points[i][0], points[i - 1][0]),
+              calcDist(points[i][0], points[(i + 1) % len(points)][0]))]
+             ] for i in range(len(points))]
 
 
 def countMinimalSectionRatio(section1, section2):
@@ -130,25 +128,19 @@ def countMinimalSectionRatio(section1, section2):
 
 
 def prepareImagesDataVector(images):
-    # return [[i, countDistances(prepareVector(countAngles(findPolygon(image), image)))] for i, image in enumerate(images)]
     imagesData = []
     for i, image in enumerate(images):
         polygon = findPolygon(image)
         withAngles = countAngles(polygon, image)
-        # print("Angles = ", withAngles)
         startBasePoints = prepareVector(withAngles)
-        # print("Start base angles = ", startBasePoints)
         withDistances = countDistances(startBasePoints)
-        # print("With distances = ", withDistances)
         imagesData.append([i, withDistances])
-        # item = [imageIndex, [ [ [pointX, pointY], [angle, INNER/OUTER angle], [distanceLeft, distanceRight] ]... ]
-    # print(imagesData)
+        # item -> [imageIndex, [ [ [pointX, pointY], [angle, INNER/OUTER angle], [distanceLeft, distanceRight] ]... ]
     return imagesData
 
 
 # -(1/MAX_ANGLE_DIFFERENCES) * x + 1 or 0, where x is difference between angles
 def compareAngle(angleReference, anglePoint):
-    difference = MAX_ANGLE_DIFFERENCES
     if angleReference[1] == INNER and anglePoint[1] == INNER:
         difference = abs(HALF_ANGLE - (angleReference[0] + anglePoint[0]))
     elif angleReference[1] == OUTER and anglePoint[1] == OUTER:
@@ -166,8 +158,8 @@ def compareSection(sectionReference, sectionPoint):
 
 # [ [pointX, pointY], [angle, INNER/OUTER angle], [distanceLeft, distanceRight] ]
 def compare2Points(referencePoint, point):
-    return SECTION_WEIGHT * compareSection(referencePoint[2], point[2]) + ANGLE_WEIGHT * compareAngle(referencePoint[1],
-                                                                                                      point[1])
+    return SECTION_WEIGHT * compareSection(referencePoint[2], point[2]) \
+           + ANGLE_WEIGHT * compareAngle(referencePoint[1], point[1])
 
 
 def join2Points(point1Left, point1, point2, point2Right):  # [[joined angle, INNER/OUTER], [sectionLeft, sectionRight]]
@@ -188,8 +180,8 @@ def join2Points(point1Left, point1, point2, point2Right):  # [[joined angle, INN
 
 
 def preparePairPoints(points):  # list of [[joined angle, joined angle/2], section]
-    return [join2Points(points[i - 1], points[i], points[(i + 1) % len(points)], points[(i + 2) % len(points)]) for i in
-            range(len(points) - 1)]
+    return [join2Points(points[i - 1], points[i], points[(i + 1) % len(points)], points[(i + 2) % len(points)])
+            for i in range(len(points) - 1)]
 
 
 def buildSmallerSizePointList(combination, bigger, joinPair):
@@ -205,16 +197,11 @@ def countAvgSimilarity(smaller, bigger, joinPair):
     sumSimilarityLeft = 0.0
     sumSimilarityRight = 0.0
     i = 0
-    # counter = 0
     for i, combination in enumerate(combinations(range(len(smaller)), len(bigger) - len(smaller))):
-        # if random() > COMBINATION_USE_PROB:
-        #     counter += 1
-        #     continue
         biggerSmaller = buildSmallerSizePointList(combination, bigger, joinPair)
         for j in range(0, len(smaller)):
             sumSimilarityLeft += compare2Points(smaller[j], biggerSmaller[j])
             sumSimilarityRight += compare2Points(smaller[j], biggerSmaller[- 1 - j])
-    # divider = (i-counter) if (i-counter) > 0.0 else 1.0
     divider = i if i > 0.0 else 1.0
     return sumSimilarityLeft / divider, sumSimilarityRight / divider
 
@@ -231,7 +218,6 @@ def countSimilarity(reference, imageData):
         smaller = reference if len(reference) < len(imageData) else imageData
         joinPoints = preparePairPoints(bigger)
         similarityLeft, similarityRight = countAvgSimilarity(smaller, bigger, joinPoints)
-        # print(len(reference), len(imageData), len(joinPoints), joinPoints)
     return max(similarityLeft, similarityRight)
 
 
@@ -239,7 +225,6 @@ def createSimilarities(imagesData):
     similarities = [(reference[0], [(j, countSimilarity(reference[1][2:], imageData[1][2:]))  # cutting off base points
                                     for j, imageData in enumerate(imagesData) if i != j])
                     for i, reference in enumerate(imagesData)]
-    # print(similarities)
     return similarities
 
 
@@ -249,7 +234,6 @@ def createRanking(similarities):
         objectSimilarity[1].sort(key=lambda tup: tup[1], reverse=True)
         ranking.append([objectSimilarity[0], [t[0] for t in objectSimilarity[1]]])
     ranking.sort(key=lambda t: t[0])
-    # print(ranking)
     return ranking
 
 
